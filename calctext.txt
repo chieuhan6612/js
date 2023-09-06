@@ -1,0 +1,203 @@
+#include<windows.h>
+#include<stdio.h>
+#include<algorithm>
+#include<string>
+#include<vector>
+using namespace std;
+
+#define ADD_PTR(a,b) (decltype(a)((SIZE_T) a + (SIZE_T) b))
+
+struct FileInfo
+{
+	wstring fileName;
+	DWORD index = 0;
+	DWORD fileSize = 0;
+};
+
+
+
+bool readFile(HANDLE hdFile, LPVOID buffer, DWORD sizeRead)
+{
+	DWORD read = 0;
+	DWORD readNow = 0;
+	for ( readNow = 0; readNow < sizeRead; readNow += read)
+	{
+		auto check = ReadFile(hdFile, ADD_PTR(buffer, readNow), sizeRead - readNow, &read, 0);
+		if (0 == check)
+		{
+			break;
+		}
+	}
+	return readNow == sizeRead;
+}
+
+bool writeFile(HANDLE hdFile, LPVOID buffer, DWORD sizeWrite)
+{
+	DWORD write = 0;
+	DWORD writeNow = 0;
+	for (writeNow = 0; writeNow < sizeWrite; writeNow += write)
+	{
+		auto check = WriteFile(hdFile, ADD_PTR(buffer, writeNow), sizeWrite - writeNow, &write, 0);
+		if (0 == check)
+		{
+			break;
+		}
+	}
+	return writeNow == sizeWrite;
+}
+
+int main(int argc, char* argv[])
+{
+	if (argc < 3)
+	{
+		printf("Error.\n");
+		return 0;
+	}
+	vector<FileInfo> files;
+
+	DWORD offsetTarget = 0x3FC2A40;//std::stoul(argv[2]);
+	DWORD offsetName = 0x40ce190;//std::stoul(argv[2]);
+
+	auto hdFile = CreateFileA("C:\\Users\\tamph\\AppData\\Local\\Viber\\Viber.exe", GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	do
+	{
+		if (0 == hdFile || INVALID_HANDLE_VALUE == hdFile)
+		{
+			printf("Cannot create handle file\n");
+			break;
+		}
+		LARGE_INTEGER offset = { 0 };
+
+		auto fileSize = GetFileSize(hdFile, 0);
+		if (0 == fileSize)
+		{
+			printf("Cannot get file size\n");
+			break;
+		}
+
+		offset.QuadPart = offsetTarget;
+		auto check = SetFilePointerEx(hdFile, offset,0, FILE_BEGIN);
+		if (0 == check)
+		{
+			printf("Cannot set file pointer\n");
+			break;
+		}
+
+		int count = 0;
+
+		while (true)
+		{
+			
+			BYTE data[4] = { 0 }; // int a;
+			check = readFile(hdFile, data, 4);
+			if (0 == check)
+			{
+				printf("Cannot read file size\n");
+				break;
+			}
+			
+			
+
+			WORD newOffset = data[2] << 8 | data[3];
+			printf("OFFSET: 0x%x\n", newOffset);
+			if (0 == newOffset || offset.QuadPart + newOffset > fileSize - 3)
+			{
+				break;
+			}
+
+			vector<BYTE> file(newOffset);
+			check = readFile(hdFile, file.data(), newOffset);
+			if (0 == check)
+			{
+				printf("Cannot read file data\n");
+				break;
+			}
+
+			string fileName = "D:\\Viber\\" + to_string(++count) + ".txt";
+			printf("Write to: %s. Address %p. Size %X (%d),\n", fileName.data(), (void*)(offset.QuadPart + 4), (void*)newOffset, newOffset);
+
+			auto hFile = CreateFileA(fileName.data(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+			if (0 == hFile || INVALID_HANDLE_VALUE == hFile)
+			{
+				printf("Cannot create file handle file\n");
+				continue;
+			}
+
+			check = writeFile(hFile, file.data(), newOffset);
+			if (0 == check)
+			{
+				printf("Cannot write file: ");
+				printf("%s\n", fileName.data());
+				continue;
+			}
+			if (0 != hFile && INVALID_HANDLE_VALUE != hFile)
+			{
+				CloseHandle(hFile);
+			}
+
+			files.push_back({ L"",(DWORD)offset.QuadPart, newOffset });
+
+			offset.QuadPart += newOffset + 4;
+			if (offset.QuadPart > 0x40ce180)
+			{
+				printf("End\n");
+				break;
+			}
+			check = SetFilePointerEx(hdFile, offset, 0, FILE_BEGIN);
+			if (0 == check)
+			{
+				break;
+			}
+		}
+		
+		printf("Count file: %d\n", (int)files.size());
+		offset.QuadPart = offsetName;
+
+		//for (auto& file : files)
+		//for (; offset.QuadPart < 0x40d5c4a;)
+		//{
+
+		//	auto check = SetFilePointerEx(hdFile, offset, 0, FILE_BEGIN);
+		//	if (0 == check)
+		//	{
+		//		printf("Cannot set file pointer\n");
+		//		continue;
+		//	}
+
+		//	BYTE data[6] = { 0 };
+
+		//	check = readFile(hdFile, data, 6);
+		//	if (0 == check)
+		//	{
+		//		printf("Cannot read file name \n");
+		//		continue;
+		//	}
+		//	
+		//	BYTE len = data[1];
+
+		//	wstring fileName(len + 1, 0);
+
+		//	check = readFile(hdFile,(LPVOID)fileName.data(), len * 2);
+		//	if (0 == check)
+		//	{
+		//		printf("Cannot read file name \n");
+		//		continue;
+		//	}
+
+		//	BYTE* lpTmp = (BYTE*)fileName.data();
+		//	for (int i = 0; i < len; ++i)
+		//	{
+		//		swap(lpTmp[i * 2], lpTmp[i * 2 + 1]);
+		//	}
+		//	wprintf(L"File name: %s\n", fileName.data());
+		//	offset.QuadPart += len * 2 + 6;
+		//}
+
+
+	} while (false);
+
+	if (0 != hdFile && INVALID_HANDLE_VALUE != hdFile)
+	{
+		CloseHandle(hdFile);
+	}
+}
