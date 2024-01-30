@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -5,60 +6,32 @@
 #include <string>
 using namespace std;
 #include<vector>
-using std::cout;
-using std::endl;
-using std::string;
-using std::stoi;
-long sma(long x, long H, long n) {
 
-	long h;
-	unsigned long long r;
-	int bin[32];
-	int i;
+long long SquareAndMultiply(long long x, long long H, long long n) {
+	unsigned long long r = 1;
+	long long bin[64];
+	long long i = 0;
 
-	r = x;
-	i = 0;
-
-	/* Converts H in Binary */
-	while (H > 0) {
-
-		if (H % 2 == 0) {
-			bin[i] = 0;
-		}
-		else {
-			bin[i] = 1;
-		}
-
-		H = H / 2;
-		i++;
-
+	for (; H > 0; H /= 2) {
+		bin[i++] = H % 2;
 	}
-	i--; 
-	while (i > 0) {
+
+	for (long long j = i - 1; j >= 0; --j) {
 		r = (r * r) % n;
-		if (bin[--i] == 1) {
+
+		if (bin[j] == 1) {
 			r = (r * x) % n;
 		}
 	}
 	return r;
-
 }
 
 bool FermatTest(long long n)
 {
-	if (1 == n)
-	{
-		cout << "1 is neither a prime number nor a composite number ";
-	}
-	if (2 == n)
-	{
-		cout << " 2 is a prime number";
-	}
-	bool result = false;
 	long long t = 4;
 	for (int i = 2; i <= t; i++)
 	{
-		if (sma(i, n - 1, n) != 1)
+		if (SquareAndMultiply(i, n - 1, n) != 1)
 		{
 			return false;
 		}
@@ -77,7 +50,7 @@ vector <long long > FermatTestEx(long long a, long long b)
 	}
 	return primes;
 }
-bool MillerRabinTest(long long n, long long t)
+bool MillerRabinTest(long long n, long long t=3)
 {
 	if (n <= 1 || n == 4)
 	{
@@ -95,7 +68,7 @@ bool MillerRabinTest(long long n, long long t)
 	for (long long i = 0; i < t; i++)
 	{
 		long long a = 2 + rand() % (n - 3);
-		long long  x = sma(a, d, n);
+		long long  x = SquareAndMultiply(a, d, n);
 		if (x == 1 || x == n - 1)
 		{
 			continue;
@@ -132,16 +105,26 @@ vector <long long > MillerRabinTestEx(long long a, long long b)
 	return primes;
 }
 int main() {
-	//long long n;
-	//cout << "enter n ";
-	//cin >> n;
-	//bool check = FermatTest(n);
-	//if (check == 1) cout << n <<" is a prime number";
-	//else cout <<n<< "is a composite number";
-	vector<long long> ans = FermatTestEx(100, 150);
-	for (auto n : ans)
+	long long n;
+	cout << "enter n ";
+	cin >> n;
+	if (n < 3)
 	{
-		cout << n << " ";
+		cout << " wrong input";
 	}
-	return 0;
+	else {
+		//bool check = FermatTest(n);
+		bool check  = MillerRabinTest(n);
+		if (check == 1) cout << n << " is a prime number";
+		else cout << n << "is a composite number";
+	}
+	
+	//long long a = SquareAndMultiply(2, 382, 383);
+	//cout << a;
+	//vector<long long> ans = FermatTestEx(100, 150);
+	//for (auto n : ans)
+	//{
+	//	cout << n << " ";
+	//}
+	//return 0;
 }
