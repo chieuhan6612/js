@@ -1,0 +1,447 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <bitset>
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#define max(a,b) ((a) > (b) ? (a) : (b))
+using namespace std;
+
+int log2(long long n) {
+	long long ans;
+	for (ans = 0; ans < 64; ++ans) {
+		if (n < (1ll<<ans)) {
+			return ans;
+		}
+	}
+	return ans;
+}
+
+long long two_mul(int n) {
+	return 1 << n;
+}
+
+vector<long long> number_to_array(long long number, long long p = 2147483647, long long w = 8) {
+	long long t = (log2(p) + w -1 ) / w ;
+	vector<long long> ans(t, 0);
+	long long base = two_mul(w);
+	for (int i = 0; i < t; ++i) {
+		ans[i] = number % base;
+		number /= base;
+	}
+	reverse(ans.begin(), ans.end());
+	return ans;
+}
+
+long long array_to_number(vector<long long>& arr, long long p = 2147483647, long long w = 8) {
+	long long t = (log2(p) + w - 1) / w;
+	long long ans = 0;
+	long long base = two_mul(w);
+	long long mul = 1;
+	for (int i = t - 1; i >= 0; --i) {
+		if (arr[i] > 0) {
+			ans += mul * arr[i];
+		}
+		mul *= base;
+	}
+	return ans;
+}
+
+struct Result {
+	long long epsilon;
+	vector<long long> array;
+};
+Result add_array(vector<long long>& a, vector<long long>& b, long long p = 2147483647, long long w = 8) {
+	long long base = two_mul(w);
+	long long t = (log2(p) + w - 1) / w;
+	long long e = 0;
+
+	vector<long long> array(t, 0);
+
+	for (int i = t - 1; i >= 0; --i) {
+		array[i] = a[i] + b[i] + e;
+		e = array[i] / base;
+		array[i] %= base;
+	}
+
+	return { e,array };
+}
+
+Result add(long long a, long long b, long long p = 2147483647, long long w = 8) {
+	auto array_a = number_to_array(a,p,w);
+	auto array_b = number_to_array(b,p,w);
+	return add_array(array_a, array_b, p, w);
+}
+
+Result sub_array(vector<long long>& a, vector<long long>& b, long long p = 2147483647, long long w = 8) {
+	long long base = two_mul(w);
+	long long t = (log2(p) + w - 1) / w;
+	long long e = 0;
+
+	vector<long long> array(t, 0);
+
+	for (int i = t - 1; i >= 0; --i) {
+		array[i] = a[i] - b[i] - e;
+		e = (array[i] < 0) ? 1 : 0;
+		array[i] = (array[i] >= 0) ? array[i] % base : array[i] + base;
+	}
+
+	return { e,array };
+}
+
+Result sub(long long a, long long b, long long p = 2147483647, long long w = 8) {
+	auto array_a = number_to_array(a, p, w);
+	auto array_b = number_to_array(b, p, w);
+	return sub_array(array_a, array_b, p, w);
+}
+
+Result addF_array(vector<long long>& a, vector<long long>& b, long long p = 2147483647, long long w = 8) {
+	Result result_add = add_array(a, b, p, w);
+	vector<long long> array_p = number_to_array(p, p, w);
+	if (1 == result_add.epsilon) {
+		auto ans = sub_array(result_add.array, array_p, p, w);
+		return ans;
+	}
+	if (array_to_number(result_add.array, p, w) >= p) {
+		auto ans = sub_array(result_add.array, array_p, p, w);
+		return ans;
+	}
+	return result_add;
+}
+
+Result addF(long long a, long long b, long long p = 2147483647, long long w = 8) {
+	vector<long long> array_a = number_to_array(a, p, w);
+	vector<long long> array_b = number_to_array(b, p, w);
+
+	return addF_array(array_a, array_b, p, w);
+}
+
+
+Result subF_array(vector<long long>& a, vector<long long>& b, long long p = 2147483647, long long w = 8) {
+	Result result_add = sub_array(a, b, p, w);
+	vector<long long> array_p = number_to_array(p, p, w);
+	if (1 == result_add.epsilon) {
+		auto ans = add_array(result_add.array, array_p, p, w);
+		return ans;
+	}
+	return result_add;
+}
+
+Result subF(long long a, long long b, long long p = 2147483647, long long w = 8) {
+	vector<long long> array_a = number_to_array(a, p, w);
+	vector<long long> array_b = number_to_array(b, p, w);
+
+	return subF_array(array_a, array_b, p, w);
+}
+
+string decimal_to_binary(long long n, int length) {
+	return bitset<32>(n).to_string().substr(32 - length);
+}
+
+long long binary_to_decimal(const string& binary_string) {
+	return stoi(binary_string, nullptr, 2); 
+}
+pair<long long , long long> split_binary_and_convert_to_decimal(const string& binary_string) {
+	long long binary_length = binary_string.length();
+	string first_half = binary_string.substr(0, binary_length / 2);
+	string second_half = binary_string.substr(binary_length / 2);
+	long long first_decimal = binary_to_decimal(first_half);
+	long long second_decimal = binary_to_decimal(second_half);
+	return make_pair(first_decimal, second_decimal);
+}
+
+
+//vector<long long> Multi(vector<long long>& a, vector<long long>& b, long long p = 2147483647, long long w = 8) {
+//	long long m = (log2(p) + w - 1) / w;
+//	std::vector<long long> C(2 * m, 0);
+//	for (int i = 0; i < m; ++i)
+//	{
+//		long long U = 0;
+//		for (int j = 0; j < m; ++j)
+//		{
+//			long long uv = C[i + j] + a[m - 1 - i] * b[m - 1 - j] + U;
+//			C[i + j] = uv % (1 << w);
+//			U = uv / (1 << w);
+//		}
+//		C[( 2*m + i -m) % (2 * m)] = U;
+//	}
+//	reverse(C.begin(), C.end());
+//	return C;
+//}
+
+
+long long barrettReduction(long long u, long long N, long long n=4, long long b=3)
+{
+	long long q, R, r1, r2, r, a1, a2;
+	R = pow(b, 2 * n) / N;
+	q = (u / pow(b, n - 1)) * (R / (pow(b, n + 1)));
+	a1 = (pow(b, n + 1));
+	r1 = (u % a1);
+	a2 = (pow(n, n + 1));
+	r2 = (q * N) % a2;
+	r = r1 - r2;
+	if (r < 0)
+	{
+		r = r + (pow(b, n + 1));
+	}
+	while (r >= N)
+	{
+		r = r - N;
+	}
+	return r;
+}
+
+long long gcd(long long a, long long b) {
+	while (b != 0) {
+		long long  r = barrettReduction(a, b);
+		a = b;
+		b = r;
+	}
+	return a;
+}
+
+long long euclid(long long a, long long p)
+{
+	long long u, v, x1, x2, q, r, x;
+	u = a;
+	v = p;
+	x1 = 1;
+	x2 = 0;
+	while (u != 1)
+	{
+		q = v / u;
+		r = v - q * u;
+		x = x2 - q * x1;
+		v = u;
+		u = r;
+		x2 = x1;
+		x1 = x;
+	}
+	return x1;
+}
+
+vector<long long> Eratosthenes(long long n, long long p = 2147483647, long long w = 8) {
+	long long t = (log2(p) + w - 1) / w;
+
+	vector<bool> check(n + 1, true);
+	vector<long long> ans;
+
+	for (long long i = 2; i <= n; ++i) {
+		if (true == check[i]) {
+			ans.push_back(i);
+
+			auto array_i = number_to_array(i, p, w);
+			auto array_mul_i = add_array(array_i, array_i);
+			long long mul_i = array_to_number(array_mul_i.array);
+
+			while (mul_i <= n) {
+				check[mul_i] = false;
+				array_mul_i = add_array(array_mul_i.array, array_i);
+				mul_i = array_to_number(array_mul_i.array);
+			}
+		}
+	}
+	return ans;
+}
+vector<long long> EratosthenesEx(long long a, long long b) {
+	if (a > b) {
+		swap(a, b);
+	}
+	a = max(a, 2);
+	long long delta = sqrt(b) + 1;
+	vector<long long> primes = Eratosthenes(delta);
+	vector<bool> check(b - a + 1, true);
+
+	for (auto prime : primes) {
+
+			for (long long step = (a + prime - 1) / prime; 
+				step * prime <= b; ++step) {
+				check[step * prime - a] = false;
+			}
+		
+	}
+	vector<long long> ans;
+	for (int i = 0; i < check.size(); ++i) {
+		if (check[i] == true) {
+			ans.push_back(i+a);
+		}
+	}
+	return ans;
+}
+
+std::vector<long long> Multi(std::vector<long long >& a, std::vector<long long >& b, long long p = 2147483647, long long W = 8) {
+	long long t = (log2(p) + W - 1) / W;
+	std::vector<long long> c(2 * t, 0);
+	std::reverse(a.begin(), a.end());
+	std::reverse(b.begin(), b.end());
+
+	for (int i = 0; i < t; ++i) {
+		long long U = 0;
+		for (int j = 0; j < t; ++j) {
+			long long UV = c[i + j] + a[i] * b[j] + U;
+			if (UV != 0) {
+				c[i + j] = UV % (1 << W);
+				U = UV / (1 << W);
+			}
+		}
+		c[i + t] = U;
+	}
+
+	std::reverse(c.begin(), c.end());
+	return c;
+}
+
+vector<long long> MultiEx(long long a, long long b, long long p = 2147483647, long long W = 8)
+{
+	vector<long long> array_a = number_to_array(a, p, W);
+	vector<long long> array_b = number_to_array(b, p, W);
+
+	return Multi(array_a, array_b);
+}
+
+
+long long gcduseExtended(long long a, long long b, long long* x, long long* y)
+{
+	// Base Case 
+	if (a == 0)
+	{
+		*x = 0;
+		*y = 1;
+		return b;
+	}
+
+	long long x1, y1;
+	long long gcd = gcduseExtended(b % a, a, &x1, &y1);
+
+	*x = y1 - (b / a) * x1;
+	*y = x1;
+
+	return gcd;
+}
+
+int  main(){
+	//auto ans = number_to_array(123456, 2147483647, 8);
+	//for (auto n : ans) {
+	//	cout << n << " ";
+	//}
+	// 
+	//vector<long long > arr = { 0,1,226,64 };
+	//cout << array_to_number(arr, 2147483647, 8);
+	
+	//auto ans = add(38762497, 568424364, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+	//vector<long long> array_a = { 2,79,120, 1 };
+	//vector<long long> array_b = { 33,225,119, 172 };
+
+	//auto ans = add_array(array_a, array_b, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+	//vector<long long> array_a = { 157, 0, 173, 23 };
+	//vector<long long> array_b = { 169, 1, 0, 64 };
+
+	//auto ans = addF_array(array_a, array_b, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+	//auto ans = subF(38762497, 568424364, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+	//long long ans = barrettReduction(20, 3);
+	//cout << ans;
+
+
+	/*vector<long long> array_a = { 0, 11, 173, 248 };
+	vector<long long> array_b = { 0, 1, 226, 64 };
+	auto ans = MultiEx(524647, 32549, 2147483647, 8);
+	for (auto n : ans) {
+		cout << n << " ";
+	}*/
+
+
+
+	//auto ans = addF(2147483645, 2971215070, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+	//cout << " \n\n";
+
+
+	//
+	//auto ans_ = number_to_array((2147483645ll + 2971215070ll) % 2147483647ll, 2147483647, 8);
+	//	for (auto n : ans_) {
+	//		cout << n << " ";
+	//	}
+
+		//auto ans = addF(2147483646, 2147483643, 2147483647, 8);
+		//cout << ans.epsilon << " -- ";
+		//for (auto n : ans.array) {
+		//	cout << n << " ";
+		//}
+
+		//cout << " \n\n";
+
+		//auto ans_ = number_to_array((2147483645ll + 2971215070ll) % 2147483647ll, 2147483647, 8);
+		//for (auto n : ans_) {
+		//	cout << n << " ";
+		//}
+
+
+	//vector<long long> array_a = { 0, 11, 173, 248 };
+	//vector<long long> array_b = { 0, 1, 226, 64 };
+
+	//auto ans = addF_array(array_a, array_b, 2147483647, 8);
+	//cout << ans.epsilon << " -- ";
+	//for (auto n : ans.array) {
+	//	cout << n << " ";
+	//}
+
+
+	/*auto ans = subF(2147483646, 2147483643, 2147483647, 8);
+		cout << ans.epsilon << " -- ";
+		for (auto n : ans.array) {
+			cout << n << " ";
+		}*/
+	/*	vector<long long> array_a = { 0, 11, 173, 248 };
+		vector<long long> array_b = { 0, 1, 226, 64 };
+
+		auto ans = subF_array(array_a, array_b, 2147483647, 8);
+		cout << ans.epsilon << " -- ";
+		for (auto n : ans.array) {
+			cout << n << " ";
+		}*/
+
+	/*long long x, y, a = 345632, b = 345632;
+	long long g = gcdExtended(a, b, &x, &y);
+	cout << "gcc(" << a << "," << b << ")" << g;*/
+
+	//vector<long long> array_a = { 0, 11, 173, 248 };
+	//vector<long long> array_b = { 0, 1, 226, 64 };
+	//auto ans = Multi(array_a, array_b, 2147483647, 8);
+	//for (auto n : ans) {
+	//	cout << n << " ";
+	//}
+	//cout << "hello";
+	/*auto ans = Eratosthenes(30);
+	for (auto n : ans)
+	{
+		cout << n << " ";
+	}*/
+	//auto ans = EratosthenesEx(1000000000,1000000010);
+	//for (auto n : ans) {
+	//	cout << n << " ";
+	//}
+	return 0;
+}
