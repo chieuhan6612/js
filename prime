@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <algorithm>
+#include <string>
+using namespace std;
+#include<vector>
+using std::cout;
+using std::endl;
+using std::string;
+using std::stoi;
+long sma(long x, long H, long n) {
+
+	long h;
+	unsigned long long r;
+	int bin[32];
+	int i;
+
+	r = x;
+	i = 0;
+
+	/* Converts H in Binary */
+	while (H > 0) {
+
+		if (H % 2 == 0) {
+			bin[i] = 0;
+		}
+		else {
+			bin[i] = 1;
+		}
+
+		H = H / 2;
+		i++;
+
+	}
+	i--; 
+	while (i > 0) {
+		r = (r * r) % n;
+		if (bin[--i] == 1) {
+			r = (r * x) % n;
+		}
+	}
+	return r;
+
+}
+
+bool FermatTest(long long n)
+{
+	if (1 == n)
+	{
+		cout << "1 is neither a prime number nor a composite number ";
+	}
+	if (2 == n)
+	{
+		cout << " 2 is a prime number";
+	}
+	bool result = false;
+	long long t = 4;
+	for (int i = 2; i <= t; i++)
+	{
+		if (sma(i, n - 1, n) != 1)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+vector <long long > FermatTestEx(long long a, long long b)
+{
+	vector<long long> primes;
+	for (long long i = a; i <= b; i++)
+	{
+		if (FermatTest(i))
+		{
+			primes.push_back(i);
+		}
+	}
+	return primes;
+}
+bool MillerRabinTest(long long n, long long t)
+{
+	if (n <= 1 || n == 4)
+	{
+		return false;
+	}
+	if (n <= 3)
+	{
+		return true;
+	}
+	long long d = n - 1;
+	while (d % 2 == 0)
+	{
+		d /= 2;
+	}
+	for (long long i = 0; i < t; i++)
+	{
+		long long a = 2 + rand() % (n - 3);
+		long long  x = sma(a, d, n);
+		if (x == 1 || x == n - 1)
+		{
+			continue;
+		}
+		while (d != n - 1)
+		{
+			x = (x * x) % n;
+			d *= 2;
+			if (x == 1)
+			{
+				return false;
+			}
+			if (x == n - 1)
+			{
+				break;
+			}
+		}
+		if (x != n - 1)
+			return false;
+	}
+	return true;
+}
+vector <long long > MillerRabinTestEx(long long a, long long b)
+{
+	vector <long long> primes;
+	long long t = 3;
+	for (long long i = a; i <= b; i++)
+	{
+		if (MillerRabinTest(i, t))
+		{
+			primes.push_back(i);
+		}
+	}
+	return primes;
+}
+int main() {
+	//long long n;
+	//cout << "enter n ";
+	//cin >> n;
+	//bool check = FermatTest(n);
+	//if (check == 1) cout << n <<" is a prime number";
+	//else cout <<n<< "is a composite number";
+	vector<long long> ans = FermatTestEx(100, 150);
+	for (auto n : ans)
+	{
+		cout << n << " ";
+	}
+	return 0;
+}
