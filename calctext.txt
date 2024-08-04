@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 				break;
 			}
 
-			string fileName = "D:\\Viber\\" + to_string(++count) + ".txt";
+			string fileName = "D:\\" + to_string(++count) + ".txt";
 			printf("Write to: %s. Address %p. Size %X (%d),\n", fileName.data(), (void*)(offset.QuadPart + 4), (void*)newOffset, newOffset);
 
 			auto hFile = CreateFileA(fileName.data(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
