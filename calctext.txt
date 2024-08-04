@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 	DWORD offsetTarget = 0x3FC2A40;//std::stoul(argv[2]);
 	DWORD offsetName = 0x40ce190;//std::stoul(argv[2]);
 
-	auto hdFile = CreateFileA("C:\\Users\\tamph\\AppData\\Local\\Viber\\Viber.exe", GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	auto hdFile = CreateFileA("C:\\Users\\\\AppData\\Local\", GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	do
 	{
 		if (0 == hdFile || INVALID_HANDLE_VALUE == hdFile)
