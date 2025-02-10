@@ -1,69 +1,42 @@
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System;
+using System.IO;
 
-namespace ConsoleApp1
+class Program
 {
-    internal class Program
+    static void Main()
     {
-        static void Main(string[] args)
+        string outputFolder = @"D:\output";
+        if (!Directory.Exists(outputFolder))
         {
-
-            string filePath = @"C:\Users";
-            string filePath2 = @"C:\Users\";
-        //    byte[] file = System.IO.File.ReadAllBytes(filePath);
-            //int line = 5;
-            //var f = File.Open(filePath,FileMode.Open);
-            var fNew = File.Open(filePath2, FileMode.Create);
-            //var data = "pbcdd";
-            //bool wrote = false;
-            /*            foreach (var line in File.ReadAllLines(filePath))
-                        {
-                            if (false == wrote && line.Contains("endobj") ){
-                                wrote = true;
-                                var buffer = Encoding..GetBytes(data + "\r\n");
-                                fNew.Write(buffer, 0, buffer.Length);
-                            }
-
-                            var bufferLine = Encoding.UTF8.GetBytes(line + "\r\n");
-                            fNew.Write(bufferLine, 0, bufferLine.Length);
-                        }
-                        fNew.Close();
-                        File.Read*/
-
-
-            var pattem = Encoding.UTF8.GetBytes("aaaaa");
-            var addData = Encoding.UTF8.GetBytes("[ 3 0 R 17 0 R] >>\r\n");
-         
-
-            byte[] file = System.IO.File.ReadAllBytes(filePath);
-            int i = 0;
-            for (; i < file.Length; i++)
-            {
-                bool check = true;
-                for (int j= 0; j< pattem.Length; ++j)
-                {
-                    if (file[i+j] != pattem[j])
-                    {
-                        check = false;
-                        break;
-                    }    
-                }
-                if ( check)
-                {
-                    break;
-                }
-
-            }
-
-            fNew.Write(file, 0, i);
-            fNew.Write(addData, 0, addData.Length);
-            fNew.Write(file, i, file.Length - i);
-            fNew.Close();
-
+            Directory.CreateDirectory(outputFolder);
+            Console.WriteLine($"Đã tạo thư mục: {outputFolder}");
         }
+        if (!File.Exists(@"D:\a.txt"))
+        {
+            Console.WriteLine("Không tìm thấy file a.txt.");
+            return;
+        }
+        string[] lines = File.ReadAllLines(@"D:\a.txt");
+        string fileContentTemplate = @"iconindex = 1
+iconPath = ""C://windows//shell.dll//{0}/index.exe""";    
+        foreach (string line in lines)
+        {           
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+          
+            int spaceIndex = line.IndexOf(' ');
+            if (spaceIndex > 0)
+            {
+                string number = line.Substring(0, spaceIndex);
+                string name = line.Substring(spaceIndex + 1).Replace(".", ""); 
+                string fileName = $"{name}.url";
+                string filePath = Path.Combine(outputFolder, fileName);           
+                string fileContent = string.Format(fileContentTemplate, number);
+                File.WriteAllText(filePath, fileContent);
+                Console.WriteLine($"Đã tạo file: {filePath}");
+            }
+        }
+
+        Console.WriteLine("Hoàn tất tạo các file .url trong thư mục 'output'.");
     }
 }
