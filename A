@@ -1,0 +1,97 @@
+// Telegram/SourceFiles/backup/BackupManager.cpp
+#include "backup/TelegramBackup.h"
+#include "third_party/sqlite/sqlite3.h"
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <cstring>
+
+// Hàm giải mã đơn giản (giả lập, vì Telegram dùng mã hóa phức tạp)
+std::vector<char> decryptData(const std::vector<char>& encrypted, const std::vector<char>& key) {
+    std::vector<char> decrypted = encrypted; // Giả lập: sao chép trực tiếp
+    // Thực tế: Dùng AES-256 với key từ key_data (cần thư viện như OpenSSL)
+    return decrypted;
+}
+
+void backupMessagesFromCache() {
+    TelegramBackup backup("telegram_backup.db");
+    backup.createTables();
+
+    // Đường dẫn đến tdata (thay đổi tùy hệ điều hành)
+#ifdef _WIN32
+    std::string tdata_path = getenv("APPDATA") + std::string("\\Telegram Desktop\\tdata\\");
+#else
+    std::string tdata_path = getenv("HOME") + std::string("/.local/share/TelegramDesktop/tdata/");
+#endif
+
+    // Đọc file key_data
+    std::ifstream key_file(tdata_path + "key_data", std::ios::binary);
+    if (!key_file) {
+        std::cerr << "Cannot open key_data" << std::endl;
+        return;
+    }
+    std::vector<char> key_data((std::istreambuf_iterator<char>(key_file)), std::istreambuf_iterator<char>());
+    key_file.close();
+
+    // Giả định file database là D877F783D5D0D821 (thay đổi theo thực tế)
+    std::ifstream db_file(tdata_path + "D877F783D5D0D821", std::ios::binary);
+    if (!db_file) {
+        std::cerr << "Cannot open database file" << std::endl;
+        return;
+    }
+    std::vector<char> encrypted_data((std::istreambuf_iterator<char>(db_file)), std::istreambuf_iterator<char>());
+    db_file.close();
+
+    // Giải mã dữ liệu (giả lập)
+    std::vector<char> decrypted_data = decryptData(encrypted_data, key_data);
+
+    // Mở database SQLite từ dữ liệu giải mã
+    sqlite3* cache_db;
+    int rc = sqlite3_open(":memory:", &cache_db); // Dùng bộ nhớ để xử lý
+    if (rc) {
+        std::cerr << "Cannot open in-memory database: " << sqlite3_errmsg(cache_db) << std::endl;
+        return;
+    }
+    rc = sqlite3_deserialize(cache_db, "main", reinterpret_cast<unsigned char*>(decrypted_data.data()), 
+                            decrypted_data.size(), decrypted_data.size(), SQLITE_DESERIALIZE_READONLY);
+    if (rc) {
+        std::cerr << "Cannot deserialize database: " << sqlite3_errmsg(cache_db) << std::endl;
+        sqlite3_close(cache_db);
+        return;
+    }
+
+    // Truy vấn tin nhắn từ cache
+    sqlite3_stmt* stmt;
+    const char* sql = "SELECT chat_id, sender_id, text, date FROM messages LIMIT 100;"; // Giả định bảng messages
+    sqlite3_prepare_v2(cache_db, sql, -1, &stmt, nullptr);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        int64_t chat_id = sqlite3_column_int64(stmt, 0);
+        int64_t sender_id = sqlite3_column_int64(stmt, 1);
+        const char* content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        int64_t timestamp = sqlite3_column_int64(stmt, 3);
+        char time_str[20];
+        std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", std::localtime(×tamp));
+        backup.saveMessage(chat_id, sender_id, content ? content : "", time_str);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(cache_db);
+
+    std::cout << "Messages backed up from cache" << std::endl;
+}
+​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
+
+
+
+// Telegram/SourceFiles/main/main.cpp
+#include "backup/BackupManager.h"
+
+void startBackup() {
+    backupMessagesFromCache(); // Sao lưu từ cache
+}
+
+int main(int argc, char *argv[]) {
+    // Code khởi động Telegram Desktop...
+    startBackup();
+    // Tiếp tục code...
+}
+​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
