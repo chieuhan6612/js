@@ -1,0 +1,22 @@
+#include "data/data_session.h"
+#include "my_database.h"
+
+static MyDatabase db;
+
+void Data::Session::processUsers(const MTPVector<MTPUser> &data) {
+    for (const auto &user : data.v) {
+        applyPeerUser(user);  // Code gốc để xử lý user
+
+        // Lấy thông tin user và lưu vào SQLite
+        user.match([&](const MTPDuser &userData) {
+            int id = userData.vid().v;
+            QString username = userData.vusername() ? qs(*userData.vusername()) : QString();
+            QString firstName = userData.vfirst_name() ? qs(*userData.vfirst_name()) : QString();
+            QString lastName = userData.vlast_name() ? qs(*userData.vlast_name()) : QString();
+            QString phone = userData.vphone() ? qs(*userData.vphone()) : QString();
+
+            db.saveContact(id, username.toStdString(), firstName.toStdString(), lastName.toStdString(), phone.toStdString());
+        });
+    }
+}
+​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
